@@ -1,0 +1,33 @@
+{
+  "name": "@oke3/opencode-sessions",
+  "version": "0.1.0",
+  "description": "Persistent, searchable cross-session memory for OpenCode agents. Local-first JSONL storage, zero runtime dependencies.",
+  "type": "module",
+  "bin": {
+    "sessions": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "prepublishOnly": "bun run build && bun test"
+  },
+  "keywords": [
+    "opencode",
+    "agents",
+    "memory",
+    "jsonl",
+    "cli",
+    "local-first"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
