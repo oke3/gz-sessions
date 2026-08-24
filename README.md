@@ -1,101 +1,173 @@
 # opencode-sessions
 
-Persistent, searchable cross-session memory for [OpenCode](https://opencode.ai). Agents remember what they learned yesterday.
+[![CI](https://github.com/oke3/opencode-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/opencode-sessions/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@oke3/opencode-sessions)](https://www.npmjs.com/package/@oke3/opencode-sessions)
+[![license](https://img.shields.io/npm/l/@oke3/opencode-sessions)](./LICENSE)
+[![tests](https://img.shields.io/badge/tests-33%20pass-brightgreen)](./test)
+[![zero deps](https://img.shields.io/badge/runtime%20deps-0-blueviolet)](#why-not-a-database)
 
-Local-first: everything is stored as plain JSONL files on your machine. No server, no database, no account, **zero runtime dependencies**.
+**Persistent, searchable cross-session memory for [OpenCode](https://opencode.ai) agents.**
+Your agent learned something painful at 2 AM yesterday. Today it walks straight back into the same wall. `opencode-sessions` fixes that — with a JSONL file and zero ceremony.
 
-## Why
+> **Local-first:** plain JSONL files on your machine. No server, no database, no account, no telemetry, **zero runtime dependencies**.
 
-AI coding sessions are amnesiac. Every session re-learns the same project quirks, re-makes the same decisions, and re-hits the same walls. `opencode-sessions` gives agents a tiny, boring, durable place to write things down — and a fast way to recall them at the start of the next session.
+---
 
-- **Append-only JSONL** — one file per project, trivially inspectable with `cat`/`grep`, safe to back up and diff.
-- **Zero runtime dependencies** — Node built-ins only; installs in milliseconds.
-- **Searchable** — case-insensitive substring match across text + tags, newest first.
-- **Portable** — point `SESSIONS_HOME` anywhere (dotfiles repo, synced folder, per-machine root).
+## Table of contents
+
+- [The problem it solves](#the-problem-it-solves)
+- [Quickstart](#quickstart)
+- [Install](#install)
+- [CLI reference](#cli-reference)
+- [JSONL schema](#jsonl-schema)
+- [Storage location](#storage-location)
+- [Wiring into OpenCode](#wiring-into-opencode)
+- [Programmatic API](#programmatic-api)
+- [Why not a database?](#why-not-a-database)
+- [Comparison](#comparison)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+## The problem it solves
+
+AI coding sessions are amnesiac. Every session:
+
+- re-learns the same project quirks ("oh, the build needs `--compile` before `--outfile`"),
+- re-litigates the same decisions ("should we use JSONL or SQLite?" — decided last week),
+- re-hits the same walls (the flaky test, the proxy that eats PUT requests, the peak-hour pricing window).
+
+Context files like `AGENTS.md` hold *static* knowledge you wrote by hand. They can't capture what the agent discovered *while working* — and that's exactly the knowledge you lose when the session dies.
+
+`opencode-sessions` gives agents a tiny, boring, durable place to write things down — and a fast way to recall them at the start of the next session.
+
+**Before:**
+
+```txt
+Session 47: "TIL: vitest needs --pool=forks on this repo or workers hang."
+Session 48: *hangs* … 20 minutes lost rediscovering why.
+```
+
+**After:**
+
+```sh
+$ sessions add my-app "vitest needs --pool=forks here or workers hang" \
+    --type learning --tag vitest --tag ci
+$ # next day
+$ sessions search my-app "vitest hang"
+2026-08-24T09:12:44.102Z [learning] vitest needs --pool=forks here or workers hang  #vitest #ci
+```
+
+## Quickstart
+
+```sh
+npx @oke3/opencode-sessions add my-app "deploy script requires NODE_ENV=production" --type fact
+npx @oke3/opencode-sessions search my-app "deploy"
+```
+
+That's the whole loop. Everything else is detail.
 
 ## Install
 
-Run it directly (no install step):
+Run directly (no install step):
 
 ```sh
 npx @oke3/opencode-sessions --help
-# or
 bunx @oke3/opencode-sessions --help
 ```
 
-Or install globally:
+Install globally:
 
 ```sh
 bun add -g @oke3/opencode-sessions   # or: npm i -g @oke3/opencode-sessions
 sessions --help
 ```
 
-## CLI usage
+Use as a library:
 
 ```sh
-# store a memory (--type defaults to "fact"; repeat --tag as needed)
-sessions add my-app "Bun needs --compile before --outfile" --type learning --tag bun --tag build
-
-# search text + tags, case-insensitive, newest first (default limit 20)
-sessions search my-app "compile"
-sessions search my-app "bun" --limit 5
-
-# list everything for a project, newest first
-sessions list my-app
-
-# how many entries
-sessions count my-app
-
-# machine-readable output for any command
-sessions list my-app --json
+bun add @oke3/opencode-sessions      # or: npm i @oke3/opencode-sessions
 ```
 
-### Commands & flags
+Requires Node ≥ 18 (or Bun ≥ 1.0). No other prerequisites.
 
-| Command | Args | Notes |
-|---|---|---|
-| `add` | `<project> <text>` | `--type learning\|decision\|fact\|preference`, `--tag <t>` repeatable |
-| `search` | `<project> <query>` | substring match on text + tags; `--limit n` |
-| `list` | `<project>` | all entries, newest first |
-| `count` | `<project>` | entry count |
+## CLI reference
 
-Global flag: `--json`. Help: `-h`, `--help`.
+```txt
+sessions add <project> <text> [--type <t>] [--tag <t>]...
+sessions search <project> <query> [--limit <n>]
+sessions list <project>
+sessions count <project>
+```
 
-Project names are sanitized into safe filenames (`My Cool App!` → `My-Cool-App.jsonl`). Multi-word queries work without extra quoting: `sessions search my-app compile flag`.
+| Command | Arguments | Flags | Behavior |
+|---|---|---|---|
+| `add` | `<project> <text>` | `--type`, `--tag` (repeatable), `--json` | Stores one entry; prints the stored record |
+| `search` | `<project> <query>` | `--limit n` (default 20), `--json` | Case-insensitive substring match on text + tags; newest first |
+| `list` | `<project>` | `--json` | All entries, newest first |
+| `count` | `<project>` | `--json` | Entry count (`0` if project unknown) |
+
+Global flags: `--json` (machine-readable output on any command), `-h` / `--help`.
+
+### Entry types
+
+Use them consistently — they're cheap now and gold later:
+
+| Type | Use for |
+|---|---|
+| `learning` | Lessons, wrong turns, "never do X again" |
+| `decision` | Chosen approaches **and why** |
+| `fact` | Environment/project facts (ports, flags, quirks) |
+| `preference` | User conventions (style, tooling, workflow) |
+
+### Details that matter
+
+- Project names are sanitized into safe filenames: `My Cool App!` → `My-Cool-App.jsonl`.
+- Multi-word queries need no extra quoting: `sessions search my-app compile flag`.
+- `add` rejects empty text; tags are trimmed and deduplicated.
+- Corrupt JSONL lines are skipped on read — one bad line never takes down the file.
+- Exit codes: `0` success, `1` usage/runtime error.
 
 ## JSONL schema
 
 One JSON object per line in `$SESSIONS_HOME/<project>.jsonl`:
 
 ```json
-{"id":"7c9e6679-7425-40de-944b-e07fc1f90ae7","ts":"2026-08-24T09:12:44.102Z","type":"learning","text":"Bun needs --compile before --outfile","tags":["bun","build"]}
+{
+  "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "ts": "2026-08-24T09:12:44.102Z",
+  "type": "learning",
+  "text": "Bun needs --compile before --outfile",
+  "tags": ["bun", "build"]
+}
 ```
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string | UUIDv4 |
-| `ts` | string | ISO-8601 timestamp; ordering key (newest first) |
+| `id` | `string` | UUIDv4 |
+| `ts` | `string` | ISO-8601 timestamp; ordering key (newest first) |
 | `type` | enum | `learning` \| `decision` \| `fact` \| `preference` |
-| `text` | string | the memory itself |
-| `tags?` | string[] | optional, deduplicated |
+| `text` | `string` | The memory itself (trimmed, non-empty) |
+| `tags?` | `string[]` | Optional, deduplicated |
 
-Corrupt lines are skipped on read rather than failing the whole file.
+Because it's append-only JSONL, the files are safe to `cat`, `grep`, `diff`, back up, version, and sync. Future features (edit/delete, date filters) won't require a migration.
 
 ## Storage location
 
-```sh
-$SESSIONS_HOME/<project>.jsonl     # default: ~/.opencode-sessions/
+```txt
+$SESSIONS_HOME/<project>.jsonl        # default: ~/.opencode-sessions/
 ```
 
-Override the root for tests, sync folders, or multi-machine setups:
+Override the root for tests, dotfiles repos, synced folders, or per-machine setups:
 
 ```sh
 SESSIONS_HOME=~/Dropbox/sessions sessions add my-app "remembered everywhere"
 ```
 
-## How OpenCode agents should use it
+## Wiring into OpenCode
 
-Add this to your project's `AGENTS.md` (or your agent definition):
+Add this block to your project's `AGENTS.md` (or your global agent rules):
 
 ```md
 ## Cross-session memory
@@ -107,11 +179,66 @@ You have persistent memory via the `sessions` CLI.
   `sessions add <project> "<insight>" --type learning --tag <area>`
 - Use types consistently: `learning` = lessons/wrong turns,
   `decision` = chosen approaches + why, `fact` = environment/project facts,
-  `preference` = user conventions (style, tooling, workflow).
+  `preference` = user conventions.
 - Never store secrets, tokens, or credentials.
 ```
 
-Suggested rhythm: **read at session start, write at session end** (and immediately after any non-obvious discovery).
+**Suggested rhythm: read at session start, write at session end** — plus immediately after any non-obvious discovery. The CLI is fast enough (~ms) to call mid-session without friction.
+
+Works with any agent harness that can run shell commands — OpenCode, Claude Code, Aider, your own scripts. If it has a terminal, it has memory.
+
+## Programmatic API
+
+```ts
+import {
+  append,
+  search,
+  list,
+  count,
+  ENTRY_TYPES,
+  isEntryType,
+  storageRoot,
+  sanitizeProject,
+} from "@oke3/opencode-sessions";
+
+await append("my-app", { type: "decision", text: "Use JSONL over SQLite", tags: ["storage"] });
+// => SessionEntry (with generated id + ts)
+
+const hits = await search("my-app", "sqlite", 10); // limit optional
+const all  = await list("my-app");                 // newest first
+const n    = await count("my-app");                // 0 when project unknown
+
+ENTRY_TYPES;          // ["learning","decision","fact","preference"]
+isEntryType("fact");  // true — type guard
+sanitizeProject("My App!"); // "My-App"
+storageRoot();        // current SESSIONS_HOME (resolved)
+```
+
+All functions are `async` and resolve against `SESSIONS_HOME` at call time, so tests can redirect storage freely.
+
+## Why not a database?
+
+Deliberate boring-tech choice:
+
+- **Inspectable** — `cat ~/.opencode-sessions/my-app.jsonl` is the whole UI.
+- **Diffable & backupable** — it's just files; git/dropdir/rsync all work for free.
+- **Zero supply chain** — Node built-ins only. Nothing to audit, nothing to break, installs in milliseconds.
+- **Fast enough** — substring scan over thousands of short lines is sub-millisecond. If your memory outgrows grep, you have bigger problems than this tool's query planner.
+
+Embeddings/vector DBs are the right tool for fuzzy recall over huge corpora. Agent session memory is small, high-signal, and keyword-shaped. Boring wins.
+
+## Comparison
+
+| | `opencode-sessions` | Static context files (`AGENTS.md`) | Vector-DB memory services |
+|---|---|---|---|
+| Captures dynamic agent learnings | ✅ | ❌ hand-written only | ✅ |
+| Local-first, no account/server | ✅ | ✅ | often ❌ |
+| Zero runtime dependencies | ✅ | ✅ | ❌ |
+| Human-readable storage | ✅ JSONL | ✅ Markdown | ❌ embeddings |
+| Works offline | ✅ | ✅ | varies |
+| Recall method | keyword substring | none (always in context) | semantic similarity |
+
+These complement each other: static conventions in `AGENTS.md`, lived experience in `opencode-sessions`.
 
 ## Development
 
@@ -119,19 +246,39 @@ Requires [Bun](https://bun.sh) for tests; TypeScript compiles the published CLI.
 
 ```sh
 bun install
-bun test        # runs test/ against temp SESSIONS_HOME dirs — never touches real data
-bun run build   # tsc -> dist/cli.js (+ dist/store.js)
+bun test          # runs test/ against temp SESSIONS_HOME dirs — never touches real data
+bun run build     # tsc -> dist/
+npx tsc --noEmit  # strict typecheck (also enforced by CI)
 ```
 
-The storage layer is importable too:
+Project layout:
 
-```ts
-import { append, search } from "@oke3/opencode-sessions";
-
-await append("my-app", { type: "decision", text: "Use JSONL over SQLite", tags: ["storage"] });
-const hits = await search("my-app", "sqlite");
+```txt
+src/store.ts    # storage layer: append/search/list/count, schema, sanitization
+src/cli.ts      # zero-dep arg parsing + output formatting
+test/*.test.ts  # store + CLI round-trips via bun test
 ```
 
-## v0.1 scope notes
+CI runs typecheck + tests on every push and PR (Node 20 + Bun).
 
-Deliberately left out (candidates for later): edit/delete of entries, full-text ranking beyond substring match, date-range filters, cross-project search, dedup detection, and any kind of sync. The format is append-only JSONL so all of these can be added without migrations.
+## Roadmap
+
+Shipped in v0.1: append/search/list/count, tags, types, JSON output, SESSIONS_HOME override.
+
+Candidates (in rough priority order — no promises, no migrations needed thanks to append-only format):
+
+- [ ] `forget` / entry deletion by id (tombstone or rewrite)
+- [ ] Date-range and tag-only filters
+- [ ] Cross-project search
+- [ ] Near-duplicate detection on `add`
+- [ ] `stats` command (entries per type/tag, activity over time)
+
+Have an opinion? [Open an issue](https://github.com/oke3/opencode-sessions/issues).
+
+## Contributing
+
+PRs welcome! Keep the constraints in mind: **zero runtime dependencies**, Node built-ins only, strict TypeScript must pass, tests must pass. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+[MIT](./LICENSE) © oke3
