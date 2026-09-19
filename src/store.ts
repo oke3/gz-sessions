@@ -1,8 +1,10 @@
+// Copyright (c) 2026 Ground Zero LLC. All rights reserved.
+
 /**
- * opencode-sessions — JSONL-backed cross-session memory store.
+ * gz-sessions — JSONL-backed cross-session memory store.
  *
  * One append-only `.jsonl` file per project under the storage root
- * (env SESSIONS_HOME, default ~/.opencode-sessions). Zero runtime
+ * (env GZ_SESSIONS_HOME, default ~/.gz-sessions). Zero runtime
  * dependencies: Node built-ins only.
  */
 import { appendFile, mkdir, readFile } from "node:fs/promises";
@@ -41,14 +43,14 @@ export function isEntryType(value: unknown): value is EntryType {
 
 /**
  * Storage root. Read lazily (on every call) so tests can point
- * SESSIONS_HOME at a temp dir at any time.
+ * GZ_SESSIONS_HOME at a temp dir at any time.
  */
 export function storageRoot(): string {
-  const fromEnv = process.env.SESSIONS_HOME;
+  const fromEnv = process.env.GZ_SESSIONS_HOME;
   if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
     return resolve(fromEnv);
   }
-  return join(homedir(), ".opencode-sessions");
+  return join(homedir(), ".gz-sessions");
 }
 
 /** Make an arbitrary project name safe to use as a filename segment. */

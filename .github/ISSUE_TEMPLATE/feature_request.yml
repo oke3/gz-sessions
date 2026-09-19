@@ -10,7 +10,7 @@ body:
       options:
         - label: My idea keeps the project local-first and dependency-free
           required: true
-        - label: I checked the [Roadmap](https://github.com/oke3/opencode-sessions#roadmap) and this isn't already listed
+        - label: I checked the [Roadmap](https://github.com/oke3/gz-sessions#roadmap) and this isn't already listed
           required: true
   - type: textarea
     id: problem

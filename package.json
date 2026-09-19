@@ -1,5 +1,5 @@
 {
-  "name": "@oke3/opencode-sessions",
+  "name": "@ground-zero-llc/gz-sessions",
   "version": "0.1.0",
   "description": "Persistent, searchable cross-session memory for OpenCode agents. Local-first JSONL storage, zero runtime dependencies.",
   "type": "module",
@@ -30,14 +30,15 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   },
-  "author": "oke3",
+  "author": "Ground Zero LLC <hello@ground-zero.dev>",
+  "publisher": "Ground Zero LLC",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oke3/opencode-sessions.git"
+    "url": "git+https://github.com/oke3/gz-sessions.git"
   },
   "bugs": {
-    "url": "https://github.com/oke3/opencode-sessions/issues"
+    "url": "https://github.com/oke3/gz-sessions/issues"
   },
-  "homepage": "https://github.com/oke3/opencode-sessions#readme"
+  "homepage": "https://github.com/oke3/gz-sessions#readme"
 }

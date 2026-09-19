@@ -1,6 +1,8 @@
+// Copyright (c) 2026 Ground Zero LLC. All rights reserved.
+
 #!/usr/bin/env node
 /**
- * sessions — CLI for opencode-sessions.
+ * sessions — CLI for gz-sessions.
  *
  * Zero-dependency argument parsing; human-readable output by default,
  * JSON with --json. Run directly (bin) or import { main } programmatically.
@@ -41,7 +43,7 @@ Options:
   -h, --help    Show this help
 
 Environment:
-  SESSIONS_HOME    Storage root (default ~/.opencode-sessions)
+  GZ_SESSIONS_HOME    Storage root (default ~/.gz-sessions)
 
 Examples:
   sessions add my-app "Bun needs --compile before --outfile" --type learning --tag bun

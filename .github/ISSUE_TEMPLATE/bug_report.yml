@@ -43,4 +43,4 @@ body:
     id: context
     attributes:
       label: Additional context
-      description: Redacted JSONL content, `SESSIONS_HOME` value, anything else relevant.
+      description: Redacted JSONL content, `GZ_SESSIONS_HOME` value, anything else relevant.

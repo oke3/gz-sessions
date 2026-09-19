@@ -1,5 +1,7 @@
+// Copyright (c) 2026 Ground Zero LLC. All rights reserved.
+
 /**
- * CLI tests: spawn src/cli.ts as a subprocess (bun) with SESSIONS_HOME
+ * CLI tests: spawn src/cli.ts as a subprocess (bun) with GZ_SESSIONS_HOME
  * pointed at a temp dir, then assert human + JSON output shapes.
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -9,13 +11,13 @@ import { join } from "node:path";
 
 const CLI = join(import.meta.dir, "..", "src", "cli.ts");
 
-process.env.SESSIONS_HOME = mkdtempSync(join(tmpdir(), "opencode-sessions-cli-boot-"));
+process.env.GZ_SESSIONS_HOME = mkdtempSync(join(tmpdir(), "gz-sessions-cli-boot-"));
 const { append } = await import("../src/store.ts");
 
 let home = "";
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "opencode-sessions-cli-"));
-  process.env.SESSIONS_HOME = home;
+  home = mkdtempSync(join(tmpdir(), "gz-sessions-cli-"));
+  process.env.GZ_SESSIONS_HOME = home;
 });
 
 afterEach(() => {
@@ -25,7 +27,7 @@ afterEach(() => {
 async function runCli(args: string[]): Promise<{ out: string; err: string; code: number }> {
   const proc = Bun.spawn([process.execPath, CLI, ...args], {
     cwd: import.meta.dir,
-    env: { ...process.env, SESSIONS_HOME: home },
+    env: { ...process.env, GZ_SESSIONS_HOME: home },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -175,7 +177,7 @@ describe("help + errors", () => {
     const { out, code } = await runCli(["--help"]);
     expect(code).toBe(0);
     expect(out).toContain("Usage:");
-    expect(out).toContain("SESSIONS_HOME");
+    expect(out).toContain("GZ_SESSIONS_HOME");
   });
 
   test("no args prints usage and exits 0", async () => {

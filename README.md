@@ -1,13 +1,15 @@
-# opencode-sessions
+# gz-sessions
 
-[![CI](https://github.com/oke3/opencode-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/opencode-sessions/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@oke3/opencode-sessions)](https://www.npmjs.com/package/@oke3/opencode-sessions)
-[![license](https://img.shields.io/npm/l/@oke3/opencode-sessions)](./LICENSE)
+> Built by [Ground Zero LLC](https://github.com/oke3) — AI infrastructure for the agentic age.
+
+[![CI](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@ground-zero-llc/gz-sessions)](https://www.npmjs.com/package/@ground-zero-llc/gz-sessions)
+[![license](https://img.shields.io/npm/l/@ground-zero-llc/gz-sessions)](./LICENSE)
 [![tests](https://img.shields.io/badge/tests-33%20pass-brightgreen)](./test)
 [![zero deps](https://img.shields.io/badge/runtime%20deps-0-blueviolet)](#why-not-a-database)
 
 **Persistent, searchable cross-session memory for [OpenCode](https://opencode.ai) agents.**
-Your agent learned something painful at 2 AM yesterday. Today it walks straight back into the same wall. `opencode-sessions` fixes that — with a JSONL file and zero ceremony.
+Your agent learned something painful at 2 AM yesterday. Today it walks straight back into the same wall. `gz-sessions` fixes that — with a JSONL file and zero ceremony.
 
 > **Local-first:** plain JSONL files on your machine. No server, no database, no account, no telemetry, **zero runtime dependencies**.
 
@@ -40,7 +42,7 @@ AI coding sessions are amnesiac. Every session:
 
 Context files like `AGENTS.md` hold *static* knowledge you wrote by hand. They can't capture what the agent discovered *while working* — and that's exactly the knowledge you lose when the session dies.
 
-`opencode-sessions` gives agents a tiny, boring, durable place to write things down — and a fast way to recall them at the start of the next session.
+`gz-sessions` gives agents a tiny, boring, durable place to write things down — and a fast way to recall them at the start of the next session.
 
 **Before:**
 
@@ -62,8 +64,8 @@ $ sessions search my-app "vitest hang"
 ## Quickstart
 
 ```sh
-npx @oke3/opencode-sessions add my-app "deploy script requires NODE_ENV=production" --type fact
-npx @oke3/opencode-sessions search my-app "deploy"
+npx @ground-zero-llc/gz-sessions add my-app "deploy script requires NODE_ENV=production" --type fact
+npx @ground-zero-llc/gz-sessions search my-app "deploy"
 ```
 
 That's the whole loop. Everything else is detail.
@@ -73,21 +75,21 @@ That's the whole loop. Everything else is detail.
 Run directly (no install step):
 
 ```sh
-npx @oke3/opencode-sessions --help
-bunx @oke3/opencode-sessions --help
+npx @ground-zero-llc/gz-sessions --help
+bunx @ground-zero-llc/gz-sessions --help
 ```
 
 Install globally:
 
 ```sh
-bun add -g @oke3/opencode-sessions   # or: npm i -g @oke3/opencode-sessions
+bun add -g @ground-zero-llc/gz-sessions   # or: npm i -g @ground-zero-llc/gz-sessions
 sessions --help
 ```
 
 Use as a library:
 
 ```sh
-bun add @oke3/opencode-sessions      # or: npm i @oke3/opencode-sessions
+bun add @ground-zero-llc/gz-sessions      # or: npm i @ground-zero-llc/gz-sessions
 ```
 
 Requires Node ≥ 18 (or Bun ≥ 1.0). No other prerequisites.
@@ -131,7 +133,7 @@ Use them consistently — they're cheap now and gold later:
 
 ## JSONL schema
 
-One JSON object per line in `$SESSIONS_HOME/<project>.jsonl`:
+One JSON object per line in `$GZ_SESSIONS_HOME/<project>.jsonl`:
 
 ```json
 {
@@ -156,13 +158,13 @@ Because it's append-only JSONL, the files are safe to `cat`, `grep`, `diff`, bac
 ## Storage location
 
 ```txt
-$SESSIONS_HOME/<project>.jsonl        # default: ~/.opencode-sessions/
+$GZ_SESSIONS_HOME/<project>.jsonl        # default: ~/.gz-sessions/
 ```
 
 Override the root for tests, dotfiles repos, synced folders, or per-machine setups:
 
 ```sh
-SESSIONS_HOME=~/Dropbox/sessions sessions add my-app "remembered everywhere"
+GZ_SESSIONS_HOME=~/Dropbox/sessions sessions add my-app "remembered everywhere"
 ```
 
 ## Wiring into OpenCode
@@ -199,7 +201,7 @@ import {
   isEntryType,
   storageRoot,
   sanitizeProject,
-} from "@oke3/opencode-sessions";
+} from "@ground-zero-llc/gz-sessions";
 
 await append("my-app", { type: "decision", text: "Use JSONL over SQLite", tags: ["storage"] });
 // => SessionEntry (with generated id + ts)
@@ -211,16 +213,16 @@ const n    = await count("my-app");                // 0 when project unknown
 ENTRY_TYPES;          // ["learning","decision","fact","preference"]
 isEntryType("fact");  // true — type guard
 sanitizeProject("My App!"); // "My-App"
-storageRoot();        // current SESSIONS_HOME (resolved)
+storageRoot();        // current GZ_SESSIONS_HOME (resolved)
 ```
 
-All functions are `async` and resolve against `SESSIONS_HOME` at call time, so tests can redirect storage freely.
+All functions are `async` and resolve against `GZ_SESSIONS_HOME` at call time, so tests can redirect storage freely.
 
 ## Why not a database?
 
 Deliberate boring-tech choice:
 
-- **Inspectable** — `cat ~/.opencode-sessions/my-app.jsonl` is the whole UI.
+- **Inspectable** — `cat ~/.gz-sessions/my-app.jsonl` is the whole UI.
 - **Diffable & backupable** — it's just files; git/dropdir/rsync all work for free.
 - **Zero supply chain** — Node built-ins only. Nothing to audit, nothing to break, installs in milliseconds.
 - **Fast enough** — substring scan over thousands of short lines is sub-millisecond. If your memory outgrows grep, you have bigger problems than this tool's query planner.
@@ -229,7 +231,7 @@ Embeddings/vector DBs are the right tool for fuzzy recall over huge corpora. Age
 
 ## Comparison
 
-| | `opencode-sessions` | Static context files (`AGENTS.md`) | Vector-DB memory services |
+| | `gz-sessions` | Static context files (`AGENTS.md`) | Vector-DB memory services |
 |---|---|---|---|
 | Captures dynamic agent learnings | ✅ | ❌ hand-written only | ✅ |
 | Local-first, no account/server | ✅ | ✅ | often ❌ |
@@ -238,7 +240,7 @@ Embeddings/vector DBs are the right tool for fuzzy recall over huge corpora. Age
 | Works offline | ✅ | ✅ | varies |
 | Recall method | keyword substring | none (always in context) | semantic similarity |
 
-These complement each other: static conventions in `AGENTS.md`, lived experience in `opencode-sessions`.
+These complement each other: static conventions in `AGENTS.md`, lived experience in `gz-sessions`.
 
 ## Development
 
@@ -246,7 +248,7 @@ Requires [Bun](https://bun.sh) for tests; TypeScript compiles the published CLI.
 
 ```sh
 bun install
-bun test          # runs test/ against temp SESSIONS_HOME dirs — never touches real data
+bun test          # runs test/ against temp GZ_SESSIONS_HOME dirs — never touches real data
 bun run build     # tsc -> dist/
 npx tsc --noEmit  # strict typecheck (also enforced by CI)
 ```
@@ -263,7 +265,7 @@ CI runs typecheck + tests on every push and PR (Node 20 + Bun).
 
 ## Roadmap
 
-Shipped in v0.1: append/search/list/count, tags, types, JSON output, SESSIONS_HOME override.
+Shipped in v0.1: append/search/list/count, tags, types, JSON output, GZ_SESSIONS_HOME override.
 
 Candidates (in rough priority order — no promises, no migrations needed thanks to append-only format):
 
@@ -273,7 +275,7 @@ Candidates (in rough priority order — no promises, no migrations needed thanks
 - [ ] Near-duplicate detection on `add`
 - [ ] `stats` command (entries per type/tag, activity over time)
 
-Have an opinion? [Open an issue](https://github.com/oke3/opencode-sessions/issues).
+Have an opinion? [Open an issue](https://github.com/oke3/gz-sessions/issues).
 
 ## Contributing
 

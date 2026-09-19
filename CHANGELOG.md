@@ -20,7 +20,7 @@ Initial release.
 
 ### Added
 
-- JSONL storage layer (`src/store.ts`): one append-only file per project under `$SESSIONS_HOME` (default `~/.opencode-sessions/`).
+- JSONL storage layer (`src/store.ts`): one append-only file per project under `$GZ_SESSIONS_HOME` (default `~/.gz-sessions/`).
   - `append(project, entry)` — stores an entry, returns the full record (generated UUIDv4 `id` + ISO-8601 `ts` when omitted).
   - `search(project, query, limit?)` — case-insensitive substring match on text + tags, newest first.
   - `list(project)` / `count(project)`.
@@ -31,9 +31,9 @@ Initial release.
   - `list <project>` / `count <project>`
   - Global `--json` output; `-h/--help`.
 - Entry types: `learning` | `decision` | `fact` | `preference`.
-- `SESSIONS_HOME` environment override for storage root.
+- `GZ_SESSIONS_HOME` environment override for storage root.
 - Test suite: 33 tests across store and CLI round-trips (temp-dir isolated).
 - Strict TypeScript build with `noEmitOnError`; CI (typecheck + tests on Node 20/22).
 
-[Unreleased]: https://github.com/oke3/opencode-sessions/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/oke3/opencode-sessions/releases/tag/v0.1.0
+[Unreleased]: https://github.com/oke3/gz-sessions/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/oke3/gz-sessions/releases/tag/v0.1.0

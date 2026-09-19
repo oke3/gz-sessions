@@ -1,12 +1,12 @@
-# Contributing to opencode-sessions
+# Contributing to gz-sessions
 
 Thanks for considering a contribution! This project is intentionally small and boring — that's a feature. Please keep PRs aligned with the constraints below so it stays that way.
 
 ## Development setup
 
 ```sh
-git clone https://github.com/oke3/opencode-sessions.git
-cd opencode-sessions
+git clone https://github.com/oke3/gz-sessions.git
+cd gz-sessions
 bun install
 
 bun test          # unit + CLI tests (run against temp storage — never real data)

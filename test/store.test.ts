@@ -1,5 +1,7 @@
+// Copyright (c) 2026 Ground Zero LLC. All rights reserved.
+
 /**
- * Store tests. SESSIONS_HOME is pointed at a fresh temp dir BEFORE the
+ * Store tests. GZ_SESSIONS_HOME is pointed at a fresh temp dir BEFORE the
  * dynamic import (and re-pointed per test) so real data is never touched.
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -7,15 +9,15 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-process.env.SESSIONS_HOME = mkdtempSync(join(tmpdir(), "opencode-sessions-boot-"));
+process.env.GZ_SESSIONS_HOME = mkdtempSync(join(tmpdir(), "gz-sessions-boot-"));
 
 const { append, count, list, projectFile, sanitizeProject, search, storageRoot } =
   await import("../src/store.ts");
 
 let home = "";
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "opencode-sessions-test-"));
-  process.env.SESSIONS_HOME = home;
+  home = mkdtempSync(join(tmpdir(), "gz-sessions-test-"));
+  process.env.GZ_SESSIONS_HOME = home;
 });
 
 afterEach(() => {
@@ -58,7 +60,7 @@ describe("append + search round-trip", () => {
     expect(await search("solo", "   ")).toEqual([]);
   });
 
-  test("file lands under SESSIONS_HOME as <project>.jsonl", async () => {
+  test("file lands under GZ_SESSIONS_HOME as <project>.jsonl", async () => {
     await append("diskcheck", { type: "fact", text: "hello" });
     const file = join(home, "diskcheck.jsonl");
     expect(existsSync(file)).toBe(true);
@@ -186,16 +188,16 @@ describe("validation + missing data", () => {
 });
 
 describe("storage root resolution", () => {
-  test("storageRoot honors SESSIONS_HOME lazily", () => {
-    process.env.SESSIONS_HOME = "/tmp/some-other-root";
+  test("storageRoot honors GZ_SESSIONS_HOME lazily", () => {
+    process.env.GZ_SESSIONS_HOME = "/tmp/some-other-root";
     expect(storageRoot()).toBe("/tmp/some-other-root");
     expect(projectFile("proj")).toBe(join("/tmp/some-other-root", "proj.jsonl"));
-    process.env.SESSIONS_HOME = home; // restore for afterEach cleanup
+    process.env.GZ_SESSIONS_HOME = home; // restore for afterEach cleanup
   });
 
-  test("falls back to ~/.opencode-sessions when unset", () => {
-    delete process.env.SESSIONS_HOME;
-    expect(storageRoot()).toBe(join(homedir(), ".opencode-sessions"));
-    process.env.SESSIONS_HOME = home;
+  test("falls back to ~/.gz-sessions when unset", () => {
+    delete process.env.GZ_SESSIONS_HOME;
+    expect(storageRoot()).toBe(join(homedir(), ".gz-sessions"));
+    process.env.GZ_SESSIONS_HOME = home;
   });
 });
