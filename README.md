@@ -412,6 +412,21 @@ Have an opinion? [Open an issue](https://github.com/oke3/gz-sessions/issues).
 
 PRs welcome! Keep the constraints in mind: **zero runtime dependencies**, Node built-ins only, strict TypeScript must pass, tests must pass. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+---
+
+## Enterprise Support
+
+Need this customized for your infrastructure? We offer:
+
+- **Integration consulting** — Wire gz-sessions into your agent runtime
+- **Custom configuration** — Task-specific rules, models, and workflows for your team
+- **Managed deployment** — We host and maintain your instance
+- **Training workshops** — Hands-on sessions for your engineering team
+
+[Book a 30-min call](https://www.grndxero.com/brief) · [See pricing](https://www.grndxero.com/pricing)
+
+---
+
 ## License
 
 MIT — Ground Zero LLC
