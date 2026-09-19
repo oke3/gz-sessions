@@ -1,15 +1,13 @@
 # gz-sessions
 
-> Built by [Ground Zero LLC](https://github.com/oke3) — AI infrastructure for the agentic age.
-
-[![CI](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Ground Zero LLC](https://img.shields.io/badge/Built%20by-Ground%20Zero%20LLC-purple)](https://github.com/oke3)
 [![npm](https://img.shields.io/npm/v/@ground-zero-llc/gz-sessions)](https://www.npmjs.com/package/@ground-zero-llc/gz-sessions)
-[![license](https://img.shields.io/npm/l/@ground-zero-llc/gz-sessions)](./LICENSE)
-[![tests](https://img.shields.io/badge/tests-33%20pass-brightgreen)](./test)
-[![zero deps](https://img.shields.io/badge/runtime%20deps-0-blueviolet)](#why-not-a-database)
+[![CI](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/gz-sessions/actions)
 
-**Persistent, searchable cross-session memory for [OpenCode](https://opencode.ai) agents.**
-Your agent learned something painful at 2 AM yesterday. Today it walks straight back into the same wall. `gz-sessions` fixes that — with a JSONL file and zero ceremony.
+**Persistent, searchable cross-session memory for AI coding agents.**
+
+Your agent learned something painful at 2 AM. Today it walks into the same wall. `gz-sessions` fixes that — with a JSONL file and zero ceremony.
 
 > **Local-first:** plain JSONL files on your machine. No server, no database, no account, no telemetry, **zero runtime dependencies**.
 
@@ -17,22 +15,27 @@ Your agent learned something painful at 2 AM yesterday. Today it walks straight 
 
 ## Table of contents
 
-- [The problem it solves](#the-problem-it-solves)
-- [Quickstart](#quickstart)
+- [Why](#why)
+- [Quick Start](#quick-start)
 - [Install](#install)
-- [CLI reference](#cli-reference)
-- [JSONL schema](#jsonl-schema)
-- [Storage location](#storage-location)
+- [How Memory Works](#how-memory-works)
+- [Architecture](#architecture)
+- [CLI Reference](#cli-reference)
+- [JSONL Schema](#jsonl-schema)
+- [Storage Format](#storage-format)
+- [Storage Location](#storage-location)
 - [Wiring into OpenCode](#wiring-into-opencode)
 - [Programmatic API](#programmatic-api)
-- [Why not a database?](#why-not-a-database)
+- [Why Not a Database?](#why-not-a-database)
 - [Comparison](#comparison)
+- [Feature Highlights](#feature-highlights)
 - [Development](#development)
+- [Related Projects](#related-projects)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
-## The problem it solves
+## Why
 
 AI coding sessions are amnesiac. Every session:
 
@@ -61,7 +64,7 @@ $ sessions search my-app "vitest hang"
 2026-08-24T09:12:44.102Z [learning] vitest needs --pool=forks here or workers hang  #vitest #ci
 ```
 
-## Quickstart
+## Quick Start
 
 ```sh
 npx @ground-zero-llc/gz-sessions add my-app "deploy script requires NODE_ENV=production" --type fact
@@ -94,7 +97,70 @@ bun add @ground-zero-llc/gz-sessions      # or: npm i @ground-zero-llc/gz-sessio
 
 Requires Node ≥ 18 (or Bun ≥ 1.0). No other prerequisites.
 
-## CLI reference
+## How Memory Works
+
+The memory loop is intentionally simple:
+
+1. **Write** — After a non-obvious discovery, persist it:
+   ```sh
+   sessions add my-app "vitest needs --pool=forks here or workers hang" \
+       --type learning --tag vitest --tag ci
+   ```
+
+2. **Recall** — At the start of the next session, search for relevant context:
+   ```sh
+   sessions search my-app "vitest hang"
+   ```
+
+3. **List** — Browse everything for a project:
+   ```sh
+   sessions list my-app
+   ```
+
+**Suggested rhythm:** read at session start, write at session end — plus immediately after any non-obvious discovery. The CLI is fast enough (~ms) to call mid-session without friction.
+
+Entries are typed (`learning`, `decision`, `fact`, `preference`) and tagged for organization. Types are cheap now and gold later — they let you filter by "what did I learn" vs "what did I decide."
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Agent Session                  │
+│                                                 │
+│  ┌───────────┐    ┌───────────┐    ┌─────────┐ │
+│  │  recall   │    │  capture  │    │ browse  │ │
+│  │  search   │    │  add      │    │  list   │ │
+│  └─────┬─────┘    └─────┬─────┘    └────┬────┘ │
+│        │                │               │       │
+│        └────────┬───────┴───────┬───────┘       │
+│                 │               │               │
+└─────────────────┼───────────────┼───────────────┘
+                  │               │
+           ┌──────▼───────────────▼──────┐
+           │       gz-sessions CLI       │
+           │  (zero-dep arg parsing)     │
+           └──────────────┬──────────────┘
+                          │
+                 ┌────────▼────────┐
+                 │   store.ts      │
+                 │  append/search  │
+                 │  list/count     │
+                 │  sanitize       │
+                 └────────┬────────┘
+                          │
+           ┌──────────────▼──────────────┐
+           │   ~/.gz-sessions/           │
+           │   ├── my-app.jsonl          │
+           │   ├── another-project.jsonl │
+           │   └── ...                   │
+           └─────────────────────────────┘
+```
+
+**Storage layer** (`store.ts`): append-only JSONL I/O, UUIDv4 generation, case-insensitive substring search, newest-first ordering. All functions are async and resolve `GZ_SESSIONS_HOME` at call time.
+
+**CLI layer** (`cli.ts`): zero-dependency argument parsing, human-readable output by default, `--json` for machine-readable output. No third-party arg parser — just a hand-rolled loop.
+
+## CLI Reference
 
 ```txt
 sessions add <project> <text> [--type <t>] [--tag <t>]...
@@ -104,7 +170,7 @@ sessions count <project>
 ```
 
 | Command | Arguments | Flags | Behavior |
-|---|---|---|---|
+|---------|-----------|-------|----------|
 | `add` | `<project> <text>` | `--type`, `--tag` (repeatable), `--json` | Stores one entry; prints the stored record |
 | `search` | `<project> <query>` | `--limit n` (default 20), `--json` | Case-insensitive substring match on text + tags; newest first |
 | `list` | `<project>` | `--json` | All entries, newest first |
@@ -117,7 +183,7 @@ Global flags: `--json` (machine-readable output on any command), `-h` / `--help`
 Use them consistently — they're cheap now and gold later:
 
 | Type | Use for |
-|---|---|
+|------|---------|
 | `learning` | Lessons, wrong turns, "never do X again" |
 | `decision` | Chosen approaches **and why** |
 | `fact` | Environment/project facts (ports, flags, quirks) |
@@ -131,7 +197,7 @@ Use them consistently — they're cheap now and gold later:
 - Corrupt JSONL lines are skipped on read — one bad line never takes down the file.
 - Exit codes: `0` success, `1` usage/runtime error.
 
-## JSONL schema
+## JSONL Schema
 
 One JSON object per line in `$GZ_SESSIONS_HOME/<project>.jsonl`:
 
@@ -146,16 +212,30 @@ One JSON object per line in `$GZ_SESSIONS_HOME/<project>.jsonl`:
 ```
 
 | Field | Type | Notes |
-|---|---|---|
+|-------|------|-------|
 | `id` | `string` | UUIDv4 |
 | `ts` | `string` | ISO-8601 timestamp; ordering key (newest first) |
 | `type` | enum | `learning` \| `decision` \| `fact` \| `preference` |
 | `text` | `string` | The memory itself (trimmed, non-empty) |
 | `tags?` | `string[]` | Optional, deduplicated |
 
-Because it's append-only JSONL, the files are safe to `cat`, `grep`, `diff`, back up, version, and sync. Future features (edit/delete, date filters) won't require a migration.
+## Storage Format
 
-## Storage location
+Each project gets its own append-only JSONL file. This design choice is deliberate:
+
+**Why JSONL (not SQLite, not a single JSON blob)?**
+
+| Concern | JSONL | SQLite | Single JSON |
+|---------|-------|--------|-------------|
+| Append without locking | Yes | Yes (needs WAL) | Must rewrite whole file |
+| Human readable | `cat` or `grep` | Needs `.sqlite3` CLI | `jq` or `python` |
+| Git-friendly diffs | Line-level | Binary blob | Whole-file diff |
+| Corrupt line recovery | Skip bad line, rest intact | Needs `PRAGMA integrity_check` | Entire file broken |
+| Zero dependencies | Node `fs` built-ins | `better-sqlite3` or WASM | Node `fs` built-ins |
+
+The files are safe to `cat`, `grep`, `diff`, back up, version, and sync. Future features (edit/delete, date filters) won't require a migration.
+
+## Storage Location
 
 ```txt
 $GZ_SESSIONS_HOME/<project>.jsonl        # default: ~/.gz-sessions/
@@ -185,8 +265,6 @@ You have persistent memory via the `sessions` CLI.
 - Never store secrets, tokens, or credentials.
 ```
 
-**Suggested rhythm: read at session start, write at session end** — plus immediately after any non-obvious discovery. The CLI is fast enough (~ms) to call mid-session without friction.
-
 Works with any agent harness that can run shell commands — OpenCode, Claude Code, Aider, your own scripts. If it has a terminal, it has memory.
 
 ## Programmatic API
@@ -201,15 +279,29 @@ import {
   isEntryType,
   storageRoot,
   sanitizeProject,
+  type SessionEntry,
+  type EntryType,
+  type NewEntry,
 } from "@ground-zero-llc/gz-sessions";
 
-await append("my-app", { type: "decision", text: "Use JSONL over SQLite", tags: ["storage"] });
+// Store a memory
+const entry = await append("my-app", {
+  type: "decision",
+  text: "Use JSONL over SQLite",
+  tags: ["storage"],
+});
 // => SessionEntry (with generated id + ts)
 
+// Search (case-insensitive substring on text + tags)
 const hits = await search("my-app", "sqlite", 10); // limit optional
-const all  = await list("my-app");                 // newest first
-const n    = await count("my-app");                // 0 when project unknown
 
+// List all entries (newest first)
+const all = await list("my-app");
+
+// Count entries (0 when project unknown)
+const n = await count("my-app");
+
+// Utilities
 ENTRY_TYPES;          // ["learning","decision","fact","preference"]
 isEntryType("fact");  // true — type guard
 sanitizeProject("My App!"); // "My-App"
@@ -218,7 +310,24 @@ storageRoot();        // current GZ_SESSIONS_HOME (resolved)
 
 All functions are `async` and resolve against `GZ_SESSIONS_HOME` at call time, so tests can redirect storage freely.
 
-## Why not a database?
+### Types
+
+```ts
+type EntryType = "learning" | "decision" | "fact" | "preference";
+
+interface SessionEntry {
+  id: string;       // UUIDv4
+  ts: string;       // ISO-8601
+  type: EntryType;
+  text: string;
+  tags?: string[];
+}
+
+type NewEntry = Omit<SessionEntry, "id" | "ts"> &
+  Partial<Pick<SessionEntry, "id" | "ts">>;
+```
+
+## Why Not a Database?
 
 Deliberate boring-tech choice:
 
@@ -242,6 +351,15 @@ Embeddings/vector DBs are the right tool for fuzzy recall over huge corpora. Age
 
 These complement each other: static conventions in `AGENTS.md`, lived experience in `gz-sessions`.
 
+## Feature Highlights
+
+- **Zero runtime dependencies** — Node built-ins only. `fs/promises`, `os`, `path`, `crypto`. Nothing else.
+- **Append-only storage** — No locking, no migrations, no corruption risk from partial writes.
+- **Corrupt-line tolerant** — Bad JSONL lines are silently skipped on read. One stray line never takes down the file.
+- **Type-safe TypeScript** — Strict `tsconfig`, full type exports, CI-enforced typecheck.
+- **Cross-platform** — Works on Linux, macOS, and Windows (Node or Bun).
+- **Any agent harness** — OpenCode, Claude Code, Aider, custom scripts — if it has a shell, it has memory.
+
 ## Development
 
 Requires [Bun](https://bun.sh) for tests; TypeScript compiles the published CLI.
@@ -263,6 +381,19 @@ test/*.test.ts  # store + CLI round-trips via bun test
 
 CI runs typecheck + tests on every push and PR (Node 20 + Bun).
 
+## Related Projects
+
+| Project | What It Does |
+|---------|-------------|
+| [gz-sessions](https://github.com/oke3/gz-sessions) | Persistent cross-session memory for AI agents |
+| [gz-sessionrecall](https://github.com/oke3/gz-sessionrecall) | AI code archaeology — search your session history |
+| [gz-codemap](https://github.com/oke3/gz-codemap) | Scan codebases → auto-generate project config |
+| [gz-modelrouter](https://github.com/oke3/gz-modelrouter) | Intelligent LLM cost router — save 40-70% on bills |
+| [gz-bench](https://github.com/oke3/gz-bench) | Standardized benchmark harness for AI coding agents |
+| [gz-authmesh](https://github.com/oke3/gz-authmesh) | Unified credential mesh for AI providers |
+| [gz-remote](https://github.com/oke3/gz-remote) | Drive AI coding agents on remote machines over SSH |
+| [gz-context-engine](https://github.com/oke3/gz-context-engine) | Production-grade RAG context engine |
+
 ## Roadmap
 
 Shipped in v0.1: append/search/list/count, tags, types, JSON output, GZ_SESSIONS_HOME override.
@@ -283,4 +414,8 @@ PRs welcome! Keep the constraints in mind: **zero runtime dependencies**, Node b
 
 ## License
 
-[MIT](./LICENSE) © oke3
+MIT — Ground Zero LLC
+
+---
+
+Built by [Ground Zero LLC](https://github.com/oke3) — AI infrastructure for the agentic age.
