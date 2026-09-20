@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@ground-zero-llc/gz-sessions)](https://www.npmjs.com/package/@ground-zero-llc/gz-sessions)
 [![CI](https://github.com/oke3/gz-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/oke3/gz-sessions/actions)
 
-**Persistent, searchable cross-session memory for AI coding agents.**
+> Persistent, searchable cross-session memory for AI coding agents.
 
 Your agent learned something painful at 2 AM. Today it walks into the same wall. `gz-sessions` fixes that — with a JSONL file and zero ceremony.
 
